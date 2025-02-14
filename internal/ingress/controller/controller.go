@@ -17,7 +17,9 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sort"
 	"strconv"
 	"strings"
@@ -297,12 +299,13 @@ func (n *NGINXController) getStreamServices(configmapName string, proto apiv1.Pr
 		return []ingress.L4Service{}
 	}
 	klog.V(3).Infof("Obtaining information about %v stream services from ConfigMap %q", proto, configmapName)
-	_, _, err := k8s.ParseNameNS(configmapName)
+	ns, cmName, err := k8s.ParseNameNS(configmapName)
 	if err != nil {
 		klog.Warningf("Error parsing ConfigMap reference %q: %v", configmapName, err)
 		return []ingress.L4Service{}
 	}
-	configmap, err := n.store.GetConfigMap(configmapName)
+	configmap, err := n.cfg.Client.CoreV1().ConfigMaps(ns).Get(context.TODO(), cmName, metav1.GetOptions{})
+	//configmap, err := n.store.GetConfigMap(configmapName)
 	if err != nil {
 		klog.Warningf("Error getting ConfigMap %q: %v", configmapName, err)
 		return []ingress.L4Service{}

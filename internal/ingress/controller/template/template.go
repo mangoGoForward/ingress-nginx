@@ -616,13 +616,16 @@ func buildProxyPass(host string, b interface{}, loc interface{}) string {
 
 	proxyPass := "proxy_pass"
 
+	grpcproxy := false
 	switch location.BackendProtocol {
 	case "HTTPS":
 		proto = "https://"
 	case "GRPC":
+		grpcproxy = true
 		proto = "grpc://"
 		proxyPass = "grpc_pass"
 	case "GRPCS":
+		grpcproxy = true
 		proto = "grpcs://"
 		proxyPass = "grpc_pass"
 	case "AJP":
@@ -634,6 +637,12 @@ func buildProxyPass(host string, b interface{}, loc interface{}) string {
 	}
 
 	upstreamName := "upstream_balancer"
+	if grpcproxy && location.Service != nil {
+		upstreamName = location.Service.ObjectMeta.GetName() + "." + location.Service.ObjectMeta.GetNamespace() + ".svc"
+		if len(location.Service.Spec.Ports) > 0 {
+			upstreamName += ":" + fmt.Sprintf("%d", location.Service.Spec.Ports[0].Port)
+		}
+	}
 
 	for _, backend := range backends {
 		if backend.Name == location.Backend {
